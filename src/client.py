@@ -9,10 +9,13 @@ myname = raw_input('What is your name? ')
 class Client(Handler):
 
     def on_close(self):
-        pass
-    
+        print("Connection Closed")
+
+
     def on_msg(self, msg):
-        print msg
+        # print msg
+        if (u'txt' in msg):
+            print("%s: %s"%(msg[u'speak'], msg[u'txt']))
 
 host, port = 'localhost', 8888
 client = Client(host, port)
