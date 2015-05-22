@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 from network import Handler, poll
 import sys
 from threading import Thread
@@ -6,17 +8,19 @@ from time import sleep
 
 myname = raw_input('What is your name? ')
 
+## VIEW: class Client handles what the user sees as they chat with an agent
 class Client(Handler):
 
     def on_close(self):
         print("Connection Closed")
-
+        sys.exit(0)
 
     def on_msg(self, msg):
         # print msg
         if (u'txt' in msg):
             print("%s: %s"%(msg[u'speak'], msg[u'txt']))
 
+## BELOW is Controller
 host, port = 'localhost', 8888
 client = Client(host, port)
 client.do_send({'join': myname})
