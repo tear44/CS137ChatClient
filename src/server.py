@@ -1,11 +1,14 @@
 #! /usr/bin/env python
+
+# MODEL SCRIPT - Server Script acts as our Model
+
 from network import Listener, Handler, poll
 import sys
 
 from threading import Thread
 from time import sleep
 
-#
+
 # Global variables just to make things easier
 handlers = {}  # map client handler to user name
 users = {}      # map client name to another client name currently in contact
@@ -22,9 +25,9 @@ def next_Client():
                                                             current['msg'][u'Need'],
                                                             current['msg'][u'text'])
     handlers[Agent].do_send({u'info' : info})
+    handlers[current['name']].do_send({u'info': 'Now Connected to an Agent'})
 
 
-# CONTROLLER and Model
 class MyHandler(Handler):
 
     def on_open(self):
@@ -34,7 +37,10 @@ class MyHandler(Handler):
     def on_close(self):
         self.do_send('Client has left the chat')
         global users, CLIENTS
-        # users.pop(str(self.name))
+        users[Agent] = None
+
+        if (self.name in users):
+            users.pop(self.name)
         # print("Bye %s"%(self.name))
 
         if (len(CLIENTS)):
@@ -45,7 +51,7 @@ class MyHandler(Handler):
         print msg
         global handlers, users, Agent, CLIENTS
 
-        # CONTROLLER if joined. adds user name to users and handlers
+        #Client Joins
         if (u'join' in msg):
             self.name = msg[u'join']
             handlers[self.name] = handlers["ADD"]
@@ -64,20 +70,22 @@ class MyHandler(Handler):
                 else: #New user is gonna have to wait....
                     pass
 
+        #Client Specifies what he needs
         elif (u'Need' in msg):
+            self.do_send({u'info':'You would like option: ' + msg[u'Need']})
+
             if (users[Agent] != self.name):
                 CLIENTS.append({'name': self.name, 'msg': msg})
+                self.do_send({u'info':'Agent is currently busy, please wait...'})
             else:
                 info = 'Now connecting to client %s for %s, on topic "%s"' %(self.name,
                                                                         msg[u'Need'],
                                                                         msg[u'text'])
                 handlers[Agent].do_send({u'info' : info})
+                handlers[self.name].do_send({u'info': 'Now connected to an agent'})
 
-            self.do_send({u'info':'You would like option: ' + msg[u'Need'] + '. \nChecking for available agent now..'})
-
-        #VIEW and CONTROLLER - based on user input, change view accordingly
+        #Client Sends in some text
         elif (u'txt' in msg):
-            ## VIEW - displays to correct terminal
             if (self.name in users):
                 name = users[self.name]
                 if (name in handlers):
@@ -87,10 +95,23 @@ class MyHandler(Handler):
                 else:
                     pass
 
+        #:e option
+        elif (u'extra' in msg):
+            self.do_send({u'info': 'trolololololol'})
+            print("Troll Feature!")
+
+        #:q quit
+        elif (u'exit' in msg):
+            if (self.name == Agent):
+                Agent = None
+
+        #:s save log file
+        elif (u'save' in msg):
+            self.do_send({u'info': 'Check for log file in current directory, or where client script is located'})
 
 
 
-#
+
 class Server(Listener):
     #Signal a new handler with "ADD"
     def on_accept(self, h):
@@ -98,30 +119,10 @@ class Server(Listener):
         handlers["ADD"] = h
         self.handler = h
 
-    # def send(self, msg):
-    #     self.handler.do_send(msg)
-        # handlers['bob'].do_send({u'speak':'T', u'txt':"aaaaaaaaaaaa"})
-
 
 port = 8888
-# server = Listener(port, MyHandler)
 server = Server(port, MyHandler)
 
-# def periodic_poll():
-#     while 1:
-#         poll()
-#         sleep(0.05)  # seconds
-#
-# thread = Thread(target=periodic_poll)
-# thread.daemon = True  # die when the main thread dies
-# thread.start()
 
 while 1:
     poll(timeout=0.05) # in seconds
-    # mytxt = sys.stdin.readline().rstrip()
-    # server.send({'speak': 'Server', 'txt': mytxt})
-    # mytxt = sys.stdin.readline().rstrip()
-    # if (mytxt):
-    #     server.send(mytxt)
-
-    # sender.do_send({'speak': 'server', 'txt': mytxt})
